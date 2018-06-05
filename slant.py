@@ -8,9 +8,13 @@ from a import graph
 import heapq
 from collections import deque
 class slant:
-	def __init__(self,graph):
-		self.graph=graph
-		self.num_sentiment_val = 5 # *****************
+	def __init__(self,obj):
+		self.num_node = obj.num_node
+		self.num_sentiment_val = obj.num_sentiment_val # *****************
+		self.nodes = obj.nodes
+		self.graph=obj.graph
+		self.train= obj.train
+		self.test = obj.test
 
 		# alpha
 		# A

@@ -1,0 +1,90 @@
+This folder contains several reformatted versions of the Spectral
+Projected Gradient method (SPG) in different programming languages. An
+interface with the CUTEr test set of problems is included.
+
+If your intention is to compare SPG against any other method, please,
+refer to file spg-table.out to see the performance of (the Fortran 77
+version of) SPG on a set of bound-constrained problems from the CUTEr
+test set. When running SPG in your own computer, you should obtain
+very similar results for those problems. The output of the C version
+of SPG in the same set of problems can be found in file
+spgc-table.out.
+
+
+Fortran 77 version:
+===================
+
+Files: spgma.f spg.f toyprob.f
+
+1) Compile with: 
+
+2) Run with: spgma
+
+3) Modify toyprob.f file to solve your own problem.
+
+
+Fortran 77 version to solve problem from CUTEr:
+===============================================
+
+Files: spgma.f spg.f cuterwrapper.f
+
+1) Compile and run typing: runspg PROBLEM (PROBLEM means that there is
+a problem coded in SIF whose name file is PROBLEM.SIF). See the
+environmental variables you need to define within the script file
+runspg.
+
+
+C version:
+==========
+
+Files: spgma.c spg.c spg.h toyprob.c toyprob.h
+
+1) Compile with: gcc -O4 spgma.c spg.c toyprob.c -o spgma
+
+2) Run with: spgma
+
+3) Modify toyprob.c file to solve your own problem.
+
+
+C version to solve problem from CUTEr:
+======================================
+
+Files: spgma.f cuterwrapper.f spg.c spg.h cwrapper.c cwrapper.h
+cfortran.h
+
+This is an odd combination. Here we have a main program in Fortran 77
+and an interface with CUTEr also in Fortran 77. Both are used together
+with the SPG method written in C. At the present moment we do not see
+any reason to use it.
+
+1) Compile and run typing: runspgc PROBLEM (PROBLEM means that there
+is a problem coded in SIF whose name file is PROBLEM.SIF). See the
+environmental variables you need to define within the script file
+runspgc.
+
+
+Octave/Matlab version:
+======================
+
+Files: spgma.m spg.m toyprob.m
+
+1) Modify toyprob.m to solve your own problem.
+
+
+Octave/Matlab version to solve problem from CUTEr:
+==================================================
+
+Files: spgma_octave.m spg.m cuterwrapper.f cfortran.h eval.h evalf.C
+evalg.C proj.C inip.C
+
+This also an odd combination. Here we have a main program and the SPG
+in Octave/Matlab and an interface with CUTEr using Octave -> C++ ->
+Fortran 77. Results for solving the CUTEr collection test problems
+using this implementation are different from the ones obtained using
+the Fortran 77 or the C implementations of the SPG.
+
+1) Compile and run typing: runspgoctave PROBLEM (PROBLEM means that
+there is a problem coded in SIF whose name file is PROBLEM.SIF). See
+the environmental variables you need to define within the script file
+runspgc.
+

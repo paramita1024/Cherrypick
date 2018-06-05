@@ -1,0 +1,83 @@
+#!/bin/bash
+
+##############################################################
+#                                                            #
+# This is a script to solve problems from the CUTEr test set #
+# using SPG.                                                 #
+#                                                            #
+# Usage: runspg filename [list of filenames]                 #
+#                                                            #
+#        filename name of a file containing the .SIF         #
+#                 definition for the problem of interest.    #
+#                                                            #
+##############################################################
+
+export SPG=$HOME/spg
+
+# Environment variables related to CUTEr, SifDec and MastSIF.
+
+export CUTER=$HOME/CUTEr/CUTEr/cuter-export/CUTEr.custom.pc.lnx.gfo
+export MASTSIF=$HOME/CUTEr/MastSIF/mastsif
+export SIFDEC=$HOME/CUTEr/SifDec/SifDec.custom.pc.lnx.gfo 
+
+if [ ! -e spg-table.out ] ; then
+  touch spg-table.out ;
+fi
+
+if (( $# == 0 )) ; then
+
+  echo 'Syntax: runspg filename [list of filenames],'
+  echo 'where filename is the name of a file containing '
+  echo 'the SIF definition for the problem of interest. '
+
+else
+
+  for i in $*
+
+    do
+
+    if [ ! -e $MASTSIF/$i.SIF ] ; then
+
+      echo "file $i.SIF does not exist in directory $MASTSIF"
+
+    else
+
+      echo $i  >  sifdec.input
+      echo "3" >> sifdec.input
+      echo "0" >> sifdec.input
+      echo $i  >> sifdec.input
+      echo "0" >> sifdec.input
+      echo "2" >> sifdec.input
+      echo "1" >> sifdec.input
+
+      cp $MASTSIF/$i.SIF .
+
+      $SIFDEC/double/bin/sifdec < sifdec.input
+
+      gfortran -O4 -c ELFUN.f EXTER.f GROUP.f RANGE.f spgma.f cuterwrapper.f
+      gcc      -O4 -c -Df2cFortran spg.c cwrapper.c
+      gfortran -O4 ELFUN.o GROUP.o RANGE.o EXTER.o spgma.o spg.o cwrapper.o \
+               cuterwrapper.o \
+               $CUTER/double/bin/linpac.o -L$CUTER/double/lib -lcuter -o spgma 
+
+      ulimit -St 300
+
+      spgma
+
+      ulimit -St unlimited
+
+      if [ -e spg-tabline.out ] ; then
+        printf "%8s" $i                         >> spg-table.out ;
+        cat spg-tabline.out                     >> spg-table.out ;
+
+      else
+        printf "%8s NO INFORMATION AT ALL\n" $i >> spg-table.out ;
+      fi
+
+      rm -f ELFUN.o GROUP.o RANGE.o EXTER.o spg-tabline.out sifdec.input $i.SIF
+
+    fi
+
+    done
+
+fi

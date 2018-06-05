@@ -1,0 +1,109 @@
+#!/bin/bash
+
+##############################################################
+#                                                            #
+# This is a script to solve problems from the CUTEr test set #
+# using SPG coded in Octave/Matlab                           #
+#                                                            #
+# Usage: runspg filename [list of filenames]                 #
+#                                                            #
+#        filename name of a file containing the .SIF         #
+#                 definition for the problem of interest.    #
+#                                                            #
+##############################################################
+
+# Environment variables related to CUTEr, SifDec and MastSIF.
+
+export MASTSIF=$HOME/CUTEr/MastSIF/mastsif
+export SIFDEC=$HOME/CUTEr/SifDec/SifDec.custom.pc.lnx.gfo
+export CUTER=$HOME/CUTEr/CUTEr/cuter-export/CUTEr.custom.pc.lnx.gfo
+
+# Environment variables related to Octave.
+
+export OCTLIBDIR=/usr/lib/octave-3.0.5/
+export OCTINCDIR=/usr/include/octave-3.0.5/octave
+
+if [ ! -e spg-table.out ] ; then
+  touch spg-table.out ;
+fi
+
+if (( $# == 0 )) ; then
+  echo 'Syntax: runspg filename [list of filenames],'
+  echo 'where filename is the name of a file containing '
+  echo 'the SIF definition for the problem of interest. '
+else
+
+  for i in $*
+
+    do
+
+    if [ ! -e $MASTSIF/$i.SIF ] ; then
+
+      echo "file $i.SIF does not exist in directory $MASTSIF"
+
+    else
+
+      echo $i  >  sifdec.input
+      echo "3" >> sifdec.input
+      echo "0" >> sifdec.input
+      echo $i  >> sifdec.input
+      echo "0" >> sifdec.input
+      echo "2" >> sifdec.input
+      echo "1" >> sifdec.input
+
+      cp $MASTSIF/$i.SIF .
+
+      $SIFDEC/double/bin/sifdec < sifdec.input
+
+      gfortran -O4 -fPIC -c -xf77-cpp-input \
+          ELFUN.f EXTER.f GROUP.f RANGE.f cuterwrapper.f
+
+      g++ -O4 -c -fPIC -Df2cFortran -mieee-fp -I$OCTINCDIR -I$OCTINCDIR \
+          evalf.C evalg.C proj.C inip.C
+
+      gcc -O4 -shared -loctinterp -loctave -lcruft -L$OCTLIBDIR \
+          evalf.o cuterwrapper.o ELFUN.o GROUP.o RANGE.o EXTER.o \
+          $CUTER/double/bin/linpac.o -L$CUTER/double/lib -lcuter \
+          -o evalf.oct
+
+      gcc -O4 -shared -loctinterp -loctave -lcruft -L$OCTLIBDIR \
+          evalg.o cuterwrapper.o ELFUN.o GROUP.o RANGE.o EXTER.o \
+          $CUTER/double/bin/linpac.o -L$CUTER/double/lib -lcuter \
+          -o evalg.oct
+
+      gcc -O4 -shared -loctinterp -loctave -lcruft -L$OCTLIBDIR \
+          proj.o cuterwrapper.o ELFUN.o GROUP.o RANGE.o EXTER.o \
+          $CUTER/double/bin/linpac.o -L$CUTER/double/lib -lcuter \
+          -o proj.oct
+
+      gcc -O4 -shared -loctinterp -loctave -lcruft -L$OCTLIBDIR \
+          inip.o cuterwrapper.o ELFUN.o GROUP.o RANGE.o EXTER.o \
+          $CUTER/double/bin/linpac.o -L$CUTER/double/lib -lcuter \
+          -o inip.oct
+
+      rm -f $i.SIF sifdec.input evalf.o evalg.o proj.o inip.o \
+          ELFUN.f GROUP.f RANGE.f EXTER.f \
+          ELFUN.o GROUP.o RANGE.o EXTER.o cuterwrapper.o
+
+      ulimit -St 300
+
+      octave spgma_cuter.m
+
+      ulimit -St unlimited
+
+      if [ -e spg-tabline.out ] ; then
+        printf "%8s" $i     >> spg-table.out ;
+        cat spg-tabline.out >> spg-table.out ;
+
+      else
+        printf "%8s NO INFORMATION AT ALL\n" $i >> spg-table.out ;
+      fi
+
+      rm -f evalf.oct evalg.oct inip.oct proj.oct OUTSDIF.d \
+          spg-tabline.out solution.txt
+
+    fi
+
+    done
+
+fi

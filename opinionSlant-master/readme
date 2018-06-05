@@ -1,0 +1,8 @@
+
+simHawkesOpinionDynamics ----------simulation based forecasting - creating msgs
+simulateHawkesEventsOnly ----------Sample single Events
+projected -------------------------projection in mu and B estimation
+inference -------------------------alpha A mu B
+InferOpParam.m  -------------------LS regression for alpha and A  
+estimateOpinionParams--------------Alpha A 
+estimateHawkesFinal----------------Alpha A  

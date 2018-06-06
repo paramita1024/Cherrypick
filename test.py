@@ -15,9 +15,13 @@ class test:
 		print "c" 
 		print self.c 
 def main():
-	a=np.array([1, 2, 3 ,4 ,5])
-	if 4 in a:
-		print "true"
+	a = np.array([[1,2],[3,4]])
+	b,c = a[1,:]
+	print b
+	print c
+	# a=np.array([1, 2, 3 ,4 ,5])
+	# if 4 in a:
+	# 	print "true"
 	# t=test(1,2,3)
 	# with open('test_file'+'.pkl','wb') as f:
 	# 	pickle.dump(t, f, pickle.HIGHEST_PROTOCOL)

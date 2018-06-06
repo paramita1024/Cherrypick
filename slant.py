@@ -1,4 +1,4 @@
-import PriorityQueue from PriorityQueue
+from PriorityQueue import PriorityQueue
 import math
 import numpy.random as rnd
 import numpy as np
@@ -20,6 +20,7 @@ class slant:
 		self.num_simulation = 100000 # 
 		self.w = 0 # 
 		self.var = 0 # 
+		# self.MSE
 		# alpha
 		# A
 		# mu
@@ -66,6 +67,47 @@ class slant:
 		for t,u,m in H: #
 			tau[u].append([t,u,m])
 			ind_4_v[u]=ind_4_v[u]+1
+
+		# index={}
+		# for user in self.nodes : 
+		# 	index{user} = np.where(self.train[:,0]==user)
+
+		# for user in self.nodes : 
+		# 	user_ind = 0
+		# 	opn=0
+		# 	time=0
+		# 	neighbours = np.nonzero(self.edges[user,:])
+		# 	msg_user = np.zero(index{user}.shape[0])
+		# 	for nbr in neighbours :
+		# 		nbr_no = np.where(neighbours == nbr) 
+		# 		index_for_both = np.sort( np.concatenate(index{user}, index{nbr}, axis = 1 ) )
+
+		# 		for ind in index_for_both : 
+		# 			user_curr , time_curr , sentiment = self.train[ind,:]
+		# 			if user_curr == user:
+		# 				opn = opn*np.exp(-self.w*(time_curr - time))
+		# 				msg_user[user_ind] = sentiment
+		# 				user_ind = user_ind + 1
+		# 			else:
+		# 				opn = opn*np.exp(-self.w*(time_curr - time))+sentiment
+		# 				g[user_ind, nbr_no]=opn
+		# 			time = time_curr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		for u in range(nuser):
 			i=0
 			S=tau[u]
@@ -128,30 +170,29 @@ class slant:
 		# save the prediction in a dictionary called prediction 
 		# return a set of predicted msg
 		# add a loop here to run the following simulation repeated times
-		self.MSE = np.zero(self.num_test)
+		self.MSE = np.zero(self.num_simulation)
 		for simulation_no in range(self.num_simulation):
 			predict_test = self.predict_by_simulation() 
-			self.MSE[simulation_no] = self.get_MSE(predict_test, test[:,1]) # define performance
+			self.MSE[simulation_no] = self.get_MSE(predict_test, self.test[:,1]) # define performance
 			# self.performance.FR = self.get_FR(predict_test, test[:,1]) 
 		return np.mean(self.MSE)
 	def predict_by_simulation(self):
-		t_old = self.test[0,1]
+		t_old = 0# self.test[0,1]
 		# discuss the first case
 		predict_test = np.zero(self.num_test)
 		for m_no in range(self.num_test):
 			t_new= self.test[m_no, 1 ]
 			user = self.test[m_no, 0 ]
 			del_t = t_new-t_old
-			msg_set = self.simulate_events(del_t)
-			predict_test[m_no] = self.predict_from_msg_set( user, t_new, msg_set)
+			msg_set, opn_update, int_update = self.simulate_events(del_t)
+			# predict_test[m_no] = self.predict_from_msg_set( user, t_new, msg_set)
+			t_last,opn_last = opn_update[user,:]
+			predict_test[m_no] = self.find_opn_markov(opn_last, t_new-t_last, self.alpha[user], self.w)
 		return predict_test
-	def predict_from_msg_set(user, t_now, msg_set): # define
-		# (x ∗ (t i ) − α) exp(−ω(t i+1 − t i )) + α
-		msg_user = msg_set[np.where(msg_set[:,0] == user ),:]
-		np.max(msg_set[ind,1])
-		t_last=
-		opn_last=
-		return (opn_last-self.alpha[user])*np.exp(-self.w*(t_now - t_last ))+self.alpha[user]
+	
+
+	def find_opn_markov(self, opn_last , del_t, alpha, w):
+		return alpha + (opn_last - alpha)*np.exp(- w * del_t) 
 	def simulate_events(self,T):#
 		# test message set , parameters learnt from train , T  , graph ( number of node and adj list )
 		# sample events 
@@ -206,35 +247,36 @@ class slant:
 			d=sample_uniform(0,1)# **
 			if d*lda_bar<lda:
 				return t_new
-			else
+			else:
 				lda_bar=lda_new
 		return t_new
 	def get_FR(self,s,t):
 		return (len(s)-np.count_nonzero(np.sign(s)+np.sign(t)))/len(s)
 	def get_MSE(self,s,t):
 		return ((s-t)**2).mean()
-	def analytical_opinion_forecast_poisson(self,train, test): # analytical using poisson
-		# create nbr[u]
-		time = train[:,2] - t0 
-		temp = np.exp(-time*w).dot(train[:,1])
-		sentiment =np.array(nuser)
-		for u in range(nuser):
-			sentiment[u]=sum(np.asarray([temp[i] if train[i,0]==u for i in range(ntrain)]))
+	# def analytical_opinion_forecast_poisson(self,train, test): # analytical using poisson
+	# 	# create nbr[u]
+	# 	time = train[:,2] - t0 
+	# 	temp = np.exp(-time*w).dot(train[:,1])
+	# 	sentiment =np.array(nuser)
+	# 	for u in range(nuser):
+	# 		sentiment[u]=sum(np.asarray([temp[i] if train[i,0]==u for i in range(ntrain)]))
 		
-		x_t0=self.alpha[u]+A[u,self.graph.edges[u]].dot(sentiment[self.graph.edges[u]])
-		mat_arg=self.A.dot(np.diag(self.mu))-w*np.eye(nuser)
-		inv_mat = self.inverse_mat(mat_arg)
-		res=np.zeros(ntest)
-		for m in range(ntest):
-			exp_mat = scipyLA.expm(self.delta_t*mat_arg)
-			sub_term2 = (exp_mat-eye(nuser))*self.alpha
-			res[m] = exp_mat[u]*x_t0+w[u]*inv_mat[u]*sub_term2
-		return res		
+	# 	x_t0=self.alpha[u]+A[u,self.graph.edges[u]].dot(sentiment[self.graph.edges[u]])
+	# 	mat_arg=self.A.dot(np.diag(self.mu))-w*np.eye(nuser)
+	# 	inv_mat = self.inverse_mat(mat_arg)
+	# 	res=np.zeros(ntest)
+	# 	for m in range(ntest):
+	# 		exp_mat = scipyLA.expm(self.delta_t*mat_arg)
+	# 		sub_term2 = (exp_mat-eye(nuser))*self.alpha
+	# 		res[m] = exp_mat[u]*x_t0+w[u]*inv_mat[u]*sub_term2
+	# 	return res		
 def main():
-	input_file = 'input_data'
-	# load data 
-	with open(input_file+'.pkl','rb') as f:
-		data = pickle.load(f)
+	
+	# input_file = 'input_data'
+	# # load data 
+	# with open(input_file+'.pkl','rb') as f:
+	# 	data = pickle.load(f)
 		# data is object with three component
 		# graph , 
 		# train ( dictionary of msg )
@@ -243,7 +285,7 @@ def main():
 	# slant_obj.estimate_param(data.train)
 	# result = slant_obj.predict(data.test)
 	#******************** test *******************************************
-	print type(rnd.uniform(size = num_nbr ))
+	# print type(rnd.uniform(size = num_nbr ))
 	# def inverse_mat(self,mat):
 	# 	return LA.inv(mat)
 	# def theta(m):

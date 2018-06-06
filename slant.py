@@ -15,7 +15,11 @@ class slant:
 		self.graph=obj.graph
 		self.train= obj.train
 		self.test = obj.test
-
+		self.num_train= self.train.shape[0]
+		self.num_test= self.test.shape[0]
+		self.num_simulation = 100000 # 
+		self.w = 0 # 
+		self.var = 0 # 
 		# alpha
 		# A
 		# mu
@@ -97,20 +101,23 @@ class slant:
 		# 	A.append(list(res[1:]))
 		# 	alpha[u],A[u]=self.solve_least_square(A,b)
 		return alpha,A
-	def estimate_param(self,train):
-		self.mu =  rnd.uniform(size = self.nuser)
-		self.A = self.B = []
-		for user in self.graph.nodes:
-			num_nbr = len(self.graph.edges[user])
-			A_user = rnd.uniform(size = num_nbr ) # chec whether return ndarray
-			B_user = rnd.uniform( size = num_nbr )
-			self.A.append(A_user)
-			self.B.append(B_user)
-		self.alpha = rnd.uniform( low = 0 , high = self.num_sentiment_val, size = self.nuser )
-		
-		# self.mu,self.B = self.find_mu_B()
-		# self.alpha, self.A = self.find_alpha_A()
-	def predict(self,test):
+	def estimate_param(self, evaluate = True):
+		if evaluate == True:
+
+			self.mu,self.B = self.find_mu_B()
+			self.alpha, self.A = self.find_alpha_A()
+		else:
+
+			self.mu = rnd.uniform(size = self.nuser)
+			self.A = self.B = []
+			for user in self.nodes:
+				num_nbr = len(self.graph.edges[user])
+				A_user = rnd.uniform(size = num_nbr ) # chec whether return ndarray
+				B_user = rnd.uniform( size = num_nbr )
+				self.A.append(A_user)
+				self.B.append(B_user)
+			self.alpha = rnd.uniform( low = 0 , high = self.num_sentiment_val, size = self.nuser )
+	def predict(self):
 		# test is a dictionary
 		# test['user']=[set of msg posted by that user]
 		# each user is a key 
@@ -120,49 +127,76 @@ class slant:
 		# predict the msg of that user at that time
 		# save the prediction in a dictionary called prediction 
 		# return a set of predicted msg
-		self.performance.MSE = self.get_MSE(predict_test, test[:,1]) # define performance
-		self.performance.FR = self.get_FR(predict_test, test[:,1])  
-	def simulation_based_forecast(self,T):
-		H=forecast_sampling_events(T)
-	def forecast_sampling_events(self,T):#
+		# add a loop here to run the following simulation repeated times
+		self.MSE = np.zero(self.num_test)
+		for simulation_no in range(self.num_simulation):
+			predict_test = self.predict_by_simulation() 
+			self.MSE[simulation_no] = self.get_MSE(predict_test, test[:,1]) # define performance
+			# self.performance.FR = self.get_FR(predict_test, test[:,1]) 
+		return np.mean(self.MSE)
+	def predict_by_simulation(self):
+		t_old = self.test[0,1]
+		# discuss the first case
+		predict_test = np.zero(self.num_test)
+		for m_no in range(self.num_test):
+			t_new= self.test[m_no, 1 ]
+			user = self.test[m_no, 0 ]
+			del_t = t_new-t_old
+			msg_set = self.simulate_events(del_t)
+			predict_test[m_no] = self.predict_from_msg_set( user, t_new, msg_set)
+		return predict_test
+	def predict_from_msg_set(user, t_now, msg_set): # define
+		# (x ∗ (t i ) − α) exp(−ω(t i+1 − t i )) + α
+		msg_user = msg_set[np.where(msg_set[:,0] == user ),:]
+		np.max(msg_set[ind,1])
+		t_last=
+		opn_last=
+		return (opn_last-self.alpha[user])*np.exp(-self.w*(t_now - t_last ))+self.alpha[user]
+	def simulate_events(self,T):#
 		# test message set , parameters learnt from train , T  , graph ( number of node and adj list )
 		# sample events 
 		# sample events for each user
 		# until we reach T , we generate min t , generate corresponding event ,  update all neighbours 
 		# predict message sentiment for each msg in test set
 		# return prediction 
-		opn_update=[np.zero(self.nuser) self.alpha] 
-		int_update = [np.zero(self.nuser) self.mu] 
+
+		
+		time_init = np.zero((self.num_node,1))
+		opn_update = np.concatenate(time_init, self.alpha.T, axis=1)
+		int_update =  np.concatenate(time_init, self.mu.T, axis=1)
+		
 		H=[]
-		tQ=np.array(self.nuser)
+		tQ=np.zero((self.nuser))
 		for u in range(nuser):
 			tQ[u]=self.sample_event(self.mu[u],0,u) 
 		Q=PriorityQueue(tQ)
-		while t<T:#** define t and T 
+		t_old = 0
+		while t_old < T:
+
 			t_new,u=Q.extract_prior()# do not we need o put back t_new,u 
 			# t_old=opn_update_time[u]
 			# x_old=opn_update_val[u]
-			[t_old,x_old] = opn_update[u][:]
+			[t_old,x_old] = opn_update[u,:]
 			x_new=self.alpha[u]+(x_old-self.alpha[u])*np.exp(-self.w*(t_new-t_old))
 			# opn_update_time[u]=t_new
 			# opn_update_val[u]=x_new
-			opn_update[u]=[t_new,x_new]
-			m=sample_gaussian(x_new)#**
-			H.append([t_new,m,u])
+			opn_update[u,:]=np.array([t_new,x_new])
+			m=rnd.normal(x_new,self.var,1)#**
+			H.append(np.array([u,t_new,m]))
 			# update neighbours
-			for nbr in self.graph[u]:
+			for nbr in np.nonzero(self.edges[u,:]):
 				# change above 
-				[t_old,lda_old] = int_update[nbr][:]
-				lda_new = self.mu[nbr]+(lda-self.mu[nbr])*np.exp(-self.w*(t_new-t_old))+self.B[u][nbr]# use sparse matrix
+				[t_old,lda_old] = int_update[nbr,:]
+				lda_new = self.mu[nbr]+(lda-self.mu[nbr])*np.exp(-self.w*(t_new-t_old))+self.B[u,nbr]# use sparse matrix
 				int_update[nbr]=np.array([t_new,lda_new])#**
-				t_old,x_old=list(opn_update[nbr])
-				x_new=self.alpha[nbr]+(x_old-self.alpha[nbr])*np.exp(-self.w*(t_new-t_old))+self.A[u][nbr]*m
-				opn_update[nbr]=np.array([t_new,x_new])
+				t_old,x_old=opn_update[nbr,:]
+				x_new=self.alpha[nbr]+(x_old-self.alpha[nbr])*np.exp(-self.w*(t_new-t_old))+self.A[u,nbr]*m
+				opn_update[nbr,:]=np.array([t_new,x_new])
 				t_nbr=self.sample_event(lda_new,t_new,nbr)
 				self.Q.update_key(t_nbr,nbr) 
-			t=t_new
-		return H
-	def sample_event(self,lda,t,v):
+			t_old = t_new
+		return np.array(H)
+	def sample_event(self,lda,t,v): # to be checked
 		lda_bar=lda
 		t_new=t
 		while t_new<self.T: #* get T 

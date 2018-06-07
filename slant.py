@@ -7,16 +7,13 @@ from scipy import linalg as scipyLA
 from a import graph
 import heapq
 # from collections import deque
-
-
-class fixed_size_list:
 	
 class slant:
 	def __init__(self,obj):
 		self.num_node = obj.num_node
 		self.num_sentiment_val = obj.num_sentiment_val # *****************
 		self.nodes = obj.nodes
-		self.graph=obj.graph
+		self.edges=obj.edges
 		self.train= obj.train
 		self.test = obj.test
 		self.num_train= self.train.shape[0]
@@ -25,7 +22,7 @@ class slant:
 		self.w = 0 # 
 		self.var = 0 # 
 		self.v = 0 #
-		self.size_of_function_val_list = 1
+		# self.size_of_function_val_list = 1
 		# self.MSE
 		# alpha
 		# A
@@ -38,39 +35,71 @@ class slant:
 			if v_array[i] < 0 :
 				v_pos[i] = -v_pos[i] 
 		return v_pos
+
+	def Grad_f(self, user, coef_mat_user, last_coef_val, num_msg_user, msg_time_exp_user,  x):
+		user_mask = self.edges[user,:]
+		user_mask[user] = 1
+		last_time_train = self.train[-1,1] 
+		mu = x[0]
+		b = x[1:]
+		common_term = np.reciprocal(coef_mat_user.dot(b) * msg_time_exp_user + mu)
+		del_b_t1 = coef.T.dot( common_term *  msg_time_exp_user)
+		del_mu_t1= np.sum(common_term)
+		del_b_t2 = (np.exp(self.v*last_time_train)*(last_coef_value*user_mask) - num_msg_user*user_mask ) / self.v
+		del_mu_t2= last_time_train
+		del_t1 = np.concatenate( ([del_mu_t1], del_b_t1))
+		del_t2 = np.concatenate( ([del_mu_t2], del_b_t2))
+		return del_t1 - del_t2
 	def find_mu_B(self):
 		mu=np.ones(self.num_node)
 		B=np.zero((self.num_node,self.num_node))
+		coef_mat = np.zero((self.num_train, self.num_node))
+		num_msg_user = np.zero(self.num_node)
+		msg_time_exp = np.exp( self.v * self.train[:,1].reshape((self.num_train,)) )
+		for user , time , sentiment  in self.train:
+			neighbours  = np.nonzero(self.edges)
+			last_coef_val[user] = last_coef_val[user] + np.exp(-self.v * time)
+			coef_mat(msg_index,user) = last_coef_val(user) 
+			coef_mat(msg,neighbours) = last_coef_val(neighbours)
+			num_msg_user[user] = num_msg_user[user] + 1
+
 		for user in self.nodes:
 			# self.mu[user], self.B[user,] =self.spectral_proj_grad()
 			k=0
 			B_user_init = np.ones( self.num_node ) # change
 			x=np.concatenate(mu[user], B_user_init, axis=1 )
-			func_val_list=[]
+			# func_val_list=[]
 			d = np.ones( x.shape[0] ) 
-			H = np.eye( x.shape[0] )
+			H = np.eye( x.shape[0] ) 
 			alpha_bb = .0001 +.5*rnd.uniform(0,1) 
-			alpha_min = .0001 
+			alpha_min = .0001
+			# compute parameters  
+			user_msg_index = np.where( self.train[:,0]==user )
+			coef_mat_user =  coef_mat[user_msg_index,:]
+			msg_time_exp_user = msg_time_exp[user_msg_index]
+			
+			
 			while LA.norm(d) > sys.float_info.epsilon:
+
+				grad_f = self.Grad_f(user , coef_mat_user, last_coef_val, num_msg_user ,  msg_time_exp_user, x)
 				alpha_bar=min([alpha_min,max(alpha_bb, alpha_min)]) 
 				# alpha
-				d=self.project_positive_quadrant(x-alpha_bar*self.grad_f(x))-x #
-				func_val_list.append(self.f(x)) #
-				if len(func_val_list) > self.size_of_function_val_list: 
-					func_val_list.pop(0)
-				max_func_val=max(func_val_list) 
+				d=self.project_positive_quadrant(x-alpha_bar*grad_f)-x #
+				# func_val_list.append(self.f(x)) #
+				# if len(func_val_list) > self.size_of_function_val_list: 
+					# func_val_list.pop(0)
+				# max_func_val=max(func_val_list) 
 				alpha = 1
-				lhs = 1 # check code
-				while lhs > max_func_val + self.v*alpha*self.grad_f(x).dot(d): # lhs # write B as H 
+				while alpha*d.dot(B.dot(d)) > (self.v - 1 )*grad_f.dot(d) & alpha > 0 : # lhs # write B as H 
 					alpha = alpha - .1
 				s = alpha * d
 				x = x + s
 				y = H.dot(d)
 				alpha_bb = y.dot(y) / s.dot(y) 
 				# Bk=Bk-Bk*(sk*sk')*Bk/(sk'*Bk*sk)+yk*yk'/(yk'*sk);
-				H_s = H.dot(s) 
+				# hint y1 = np.array([y])
 				# B  = B - B @ (nps  s.T ) @ B / (s.dot(B.dot(s))) + np.matmul(y,y.T)
-				H = H - s.dot(H_s) * np.matmul( H_s, H_s.T) + np.matmul( y, y.T )/ y.dot(s)
+				H = H - s.dot(H.dot(s) * np.matmul( H_s, H_s.T) + np.matmul( y, y.T )/ y.dot(s)
 				k=k+1
 
 		self.mu = mu

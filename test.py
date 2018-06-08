@@ -14,18 +14,55 @@ class test:
 		print self.b
 		print "c" 
 		print self.c 
+	
 def main():
-	B = np.eye(3)
-	d = np.array([1 , 2, 3])
-	c = B.dot(d)
-	print c.T
-	# a = np.array([[1,2],[3,4]])
-	# b,c = a[1,:]
-	# print b
-	# print c
-	# a=np.array([1, 2, 3 ,4 ,5])
-	# if 4 in a:
-	# 	print "true"
+	v = np.array([0,0,2,3,2,1])
+	v1 = np.matmul(v,v)
+	# print type(np.nonzero(v)[0])
+	# print np.nonzero(v)
+	# v = np.array([-1,2,3])
+	# # print arr[-1]
+
+	# print np.maximum(v,np.zeros(v.shape[0]))
+
+	# arr = np.array([[1,2,3],[4,5,6],[7,8,9]])
+	# arr_part = arr[[0,2],:]
+	# arr[0,0] = 35
+	# print arr
+	# print arr_part
+	# arr = np.array([1,2,3])
+	# arr1 = np.array([3,4,5])
+	# print np.multiply(arr, arr1)
+	# print arr*arr1
+
+	# arr = np.array([1,2,3])
+	# print np.concatenate(([4],arr))
+	# arr = np.array([[1,2,3],[4,5,6]])
+	# for a,b,c in arr:
+	# 	print a 
+	# 	print b 
+	# 	print c
+	# v = np.array([1,2,3])
+	# print v
+	# print v.T
+	# print v.shape
+
+	# v1=np.array([v])
+	# print v1
+	# print v1.T
+	# print v1.shape
+	# v1 = np.array([[1,0], [0,1]])
+	# v2 = np.array([[0],[1]])
+	# # v3 = v2.T 
+	# v3 = v1.dot(v2)
+	# print v3.shape
+	# print np.matmul(v1,v2)
+	# g=v2.shape
+	# print type(g)
+	# v = np.array([1,-1,2])
+	# v1 = project_positive_quadrant(v)
+	# print v1
+	# print v
 	# t=test(1,2,3)
 	# with open('test_file'+'.pkl','wb') as f:
 	# 	pickle.dump(t, f, pickle.HIGHEST_PROTOCOL)
@@ -38,7 +75,11 @@ def main():
 	# 	print " t exists"
 	# with open('test_file'+'.pkl','rb') as f:
 	# 	t_new = pickle.load(f)
-	# t_new.print_it()
+	# # t_new.print_it()
+	# input_file = "synthetic_data_1"
+	# # load data 
+	# with open(input_file+'.pkl','rb') as f:
+	# 	data = pickle.load(f)
 if __name__=="__main__":
 	main()
 

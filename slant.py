@@ -1,11 +1,13 @@
+from create_synthetic_data import create_synthetic_data
+import pickle
 from PriorityQueue import PriorityQueue
 import math
 import numpy.random as rnd
 import numpy as np
 from numpy import linalg as LA
-from scipy import linalg as scipyLA
-from a import graph
-import heapq
+# from scipy import linalg as scipyLA
+# from a import graph
+# import heapq
 # from collections import deque
 	
 class slant:
@@ -19,9 +21,10 @@ class slant:
 		self.num_train= self.train.shape[0]
 		self.num_test= self.test.shape[0]
 		self.num_simulation = 100000 # 
-		self.w = 0 # 
-		self.var = 0 # 
-		self.v = 0 #
+		self.w = 1 # 
+		self.var = 1 # 
+		self.v = 1 #
+		self.lambda_user = 1
 		# self.size_of_function_val_list = 1
 		# self.MSE
 		# alpha
@@ -29,12 +32,8 @@ class slant:
 		# mu
 		# B
 
-	def project_positive_quadrant(v_array):
-		v_pos = np.array(v_array)
-		for i in range(v_array.shape[0]):
-			if v_array[i] < 0 :
-				v_pos[i] = -v_pos[i] 
-		return v_pos
+	def project_positive(self,v):
+		return np.maximum(v,np.zeros(v.shape[0]))
 
 	def Grad_f(self, user, coef_mat_user, last_coef_val, num_msg_user, msg_time_exp_user,  x):
 		user_mask = self.edges[user,:]
@@ -52,29 +51,29 @@ class slant:
 		return del_t1 - del_t2
 	def find_mu_B(self):
 		mu=np.ones(self.num_node)
-		B=np.zero((self.num_node,self.num_node))
-		coef_mat = np.zero((self.num_train, self.num_node))
-		num_msg_user = np.zero(self.num_node)
-		msg_time_exp = np.exp( self.v * self.train[:,1].reshape((self.num_train,)) )
-		for user , time , sentiment  in self.train:
-			neighbours  = np.nonzero(self.edges)
-			last_coef_val[user] = last_coef_val[user] + np.exp(-self.v * time)
-			coef_mat(msg_index,user) = last_coef_val(user) 
-			coef_mat(msg,neighbours) = last_coef_val(neighbours)
-			num_msg_user[user] = num_msg_user[user] + 1
+		B=np.zeros((self.num_node,self.num_node))
+		# coef_mat = np.zeros((self.num_train, self.num_node))
+		# num_msg_user = np.zeros(self.num_node)
+		# msg_time_exp = np.exp( self.v * self.train[:,1].reshape((self.num_train,)) )
+		# for user , time , sentiment  in self.train:
+		# 	neighbours  = np.nonzero(self.edges)[0]
+		# 	last_coef_val[user] = last_coef_val[user] + np.exp(-self.v * time)
+		# 	coef_mat[msg_index,user] = last_coef_val[user]
+		# 	coef_mat[msg,neighbours] = last_coef_val[neighbours]
+		# 	num_msg_user[user] = num_msg_user[user] + 1
 
 		for user in self.nodes:
 			# self.mu[user], self.B[user,] =self.spectral_proj_grad()
 			k=0
 			B_user_init = np.ones( self.num_node ) # change
-			x=np.concatenate(mu[user], B_user_init, axis=1 )
+			x=np.concatenate((mu[user], B_user_init))
 			# func_val_list=[]
 			d = np.ones( x.shape[0] ) 
 			H = np.eye( x.shape[0] ) 
 			alpha_bb = .0001 +.5*rnd.uniform(0,1) 
 			alpha_min = .0001
 			# compute parameters  
-			user_msg_index = np.where( self.train[:,0]==user )
+			user_msg_index = np.where( self.train[:,0]==user )[0]
 			coef_mat_user =  coef_mat[user_msg_index,:]
 			msg_time_exp_user = msg_time_exp[user_msg_index]
 			
@@ -99,105 +98,90 @@ class slant:
 				# Bk=Bk-Bk*(sk*sk')*Bk/(sk'*Bk*sk)+yk*yk'/(yk'*sk);
 				# hint y1 = np.array([y])
 				# B  = B - B @ (nps  s.T ) @ B / (s.dot(B.dot(s))) + np.matmul(y,y.T)
-				H = H - s.dot(H.dot(s) * np.matmul( H_s, H_s.T) + np.matmul( y, y.T )/ y.dot(s)
+				H = H - s.dot(H.dot(s)) * np.matmul( H_s, H_s.T) + np.matmul( y, y.T )/ y.dot(s)
 				k=k+1
 
-		self.mu = mu
-		self.B = B
+		# self.mu = mu
+		# self.B = B
+		 
 
 		
 
-	def solve_least_square(self,A,b):
-		
-		x=LA.solve(np.matmul(A.T,A),np.dot(A.T,b))
+	def solve_least_square(self,b,A):
+		print "A"+ str(A.shape)
+		print b.shape
+		x=LA.solve(np.matmul(A.T,A)+self.lambda_user*np.eye(A.shape[1]) ,A.T.dot(b))
 		return x[0],x[1:]
-	# def find_alpha_A(self):
-	# 	# maintain msg counter for each user
-	# 	# map users to 0 to nusers
-	# 	ind_4_V=np.zero(self.nuser)
-	# 	tau={}
-	# 	for u in range(nuser):
-	# 		tau[u]=[]
-	# 	for t,u,m in H: #
-	# 		tau[u].append([t,u,m])
-	# 		ind_4_v[u]=ind_4_v[u]+1
-	# 	for u in range(nuser):
-	# 		i=0
-	# 		S=tau[u]
-	# 		for nbr in graph[u]:
-	# 			S=self.merge(S,tau[nbr])#
-	# 			x_last=0
-	# 			t_last=0
-	# 			m_no=0
-	# 			for t,v,m in S:
-	# 				if v==u:
-	# 					x=x_last*math.exp(-w*(t-t_last))
-	# 					g(m_no,v)=x
-	# 					y(m_no)=m
-	# 					m_no=m_no+1
-	# 				else:
-	# 					x=x_last*math.exp(-w*(t-t_last))
-	# 				t_last=t
-	# 				x_last=x
-	# 		alpha[u],A[u]=self.solve_least_square(g,y,lda)
-	# 	# nmsg
-	# 	# M=np.array(nuser,nmsg.max(),3)
-	# 	# for u in self.graph.vertices:
-	# 	# 	M[u,:,:1]=np.asarray([train[i,1:] if train[i,0]==u for i in self.ntrain])
-	# 	# 	M[u,:,2]=np.multiply(M[u,:,0],np.exp(w*M[u,:,1]))
-	# 	# alpha=np.array(nuser)
-	# 	# A=[]
-	# 	# for u in self.graph.vertices:
-	# 	# 	M_hat=np.array(nmsg,len(self.edges[u])+1)
-	# 	# 	arg1=M_hat.transpose().dot(M_hat)
-	# 	# 	arg2=M_hat.transpose().dot(M[u,:,0])
-	# 	# 	res = LA.solve(arg1,arg2)
-	# 	# 	alpha[u]=res[0]
-	# 	# 	A.append(list(res[1:]))
-	# 	# 	alpha[u],A[u]=self.solve_least_square(A,b)
-	# 	return alpha,A
+	
 
 	def find_alpha_A(self):
-		alpha = np.zero(self.num_node)
-		A = np.zero((self.num_node, self.num_node ))
+		
+		alpha = np.zeros(self.num_node)
+		A = np.zeros((self.num_node, self.num_node ))
 		index={}
 		for user in self.nodes : 
-			index{user} = np.where(self.train[:,0]==user)
-
+			index[user] = np.where(self.train[:,0]==user)[0]
+		# print self.train[:,0]
+		# print "_-----------------------------------------------"
+		# print index
+		# print "nodes"
+		# print self.nodes
+		# print "_____________________________"
 		for user in self.nodes : 
-			user_ind = 0
+			# user_ind = 0
 			opn=0
 			time=0
-			num_msg_user = index{user}.shape[0]
-			neighbours = np.nonzero(self.edges[user,:])
+			num_msg_user = index[user].shape[0]
+			neighbours = np.nonzero(self.edges[user,:])[0]
 			num_nbr = neighbours.shape[0]
-			msg_user = np.zero(num_msg_user)
-			g_user = np.zero( ( num_msg_user, num_nbr ) )
+			msg_user = self.train[index[user],2]
+			g_user = np.zeros( ( num_msg_user, num_nbr ) )
+			nbr_no=0
 			for nbr in neighbours :
-				nbr_no = np.where(neighbours == nbr) 
-				index_for_both = np.sort( np.concatenate(index{user}, index{nbr}, axis = 1 ) )
-
+				user_msg_ind = 0
+				index_for_both = np.sort( np.concatenate((index[user], index[nbr])) )
+				# print "-----------------------------------"
+				# print "user" + str(user) 
+				# print index[user]
+				# print "---"
+				# print " nbr : " + str(nbr)
+				# print index[nbr]
+				print "---------merge------------"
+				print index_for_both
+				print "______________________________________"
 				for ind in index_for_both : 
 					user_curr , time_curr , sentiment = self.train[ind,:]
+					print "---------msg-----------"
+					print self.train[ind,:]
+
 					if user_curr == user:
 						opn = opn*np.exp(-self.w*(time_curr - time))
-						msg_user[user_ind] = sentiment
-						user_ind = user_ind + 1
+						user_msg_ind = user_msg_ind + 1
+						if user_msg_ind == num_msg_user:
+							break
 					else:
 						opn = opn*np.exp(-self.w*(time_curr - time))+sentiment
-						g_user[user_ind, nbr_no]=opn
+						g_user[user_msg_ind, nbr_no]=opn
 					time = time_curr
-			alpha[user], A[user,neighbours] = self.solve_least_square(msg_user, g_user, self.lambda_user)
-		self.alpha = alpha
-		self.A = A
+				nbr_no = nbr_no + 1
+			print "-----------msg_user-----------"
+			print msg_user
+			print "----------g_user ______________"
+			print g_user
+
+
+			# alpha[user], A[user,neighbours] = self.solve_least_square(msg_user, g_user)
+		# self.alpha = alpha
+		# self.A = A
 
 
 	def estimate_param(self, evaluate = True):
 		# estimate parameters
 		if evaluate == True:
-
-			self.mu,self.B = self.find_mu_B()
-			self.alpha, self.A = self.find_alpha_A()
+			# print "inside"
+			# self.mu,self.B = self.find_mu_B()
+			self.find_mu_B()
+			# self.find_alpha_A()
 		else: # generate parameters for testing prediction part 
 
 			self.mu = rnd.uniform(size = self.nuser)
@@ -220,7 +204,7 @@ class slant:
 		# save the prediction in a dictionary called prediction 
 		# return a set of predicted msg
 		# add a loop here to run the following simulation repeated times
-		self.MSE = np.zero(self.num_simulation)
+		self.MSE = np.zeros(self.num_simulation)
 		for simulation_no in range(self.num_simulation):
 			predict_test = self.predict_by_simulation() 
 			self.MSE[simulation_no] = self.get_MSE(predict_test, self.test[:,1]) # define performance
@@ -229,7 +213,7 @@ class slant:
 	def predict_by_simulation(self):
 		t_old = 0# self.test[0,1]
 		# discuss the first case
-		predict_test = np.zero(self.num_test)
+		predict_test = np.zeros(self.num_test)
 		for m_no in range(self.num_test):
 			t_new= self.test[m_no, 1 ]
 			user = self.test[m_no, 0 ]
@@ -252,12 +236,12 @@ class slant:
 		# return prediction 
 
 		
-		time_init = np.zero((self.num_node,1))
-		opn_update = np.concatenate(time_init, self.alpha.T, axis=1)
-		int_update =  np.concatenate(time_init, self.mu.T, axis=1)
+		time_init = np.zeros((self.num_node,1))
+		opn_update = np.concatenate((time_init, self.alpha.T), axis=1)
+		int_update =  np.concatenate((time_init, self.mu.T), axis=1)
 		
 		H=[]
-		tQ=np.zero((self.nuser))
+		tQ=np.zeros((self.nuser))
 		for u in range(nuser):
 			tQ[u]=self.sample_event(self.mu[u],0,u) 
 		Q=PriorityQueue(tQ)
@@ -275,7 +259,7 @@ class slant:
 			m=rnd.normal(x_new,self.var,1)#**
 			H.append(np.array([u,t_new,m]))
 			# update neighbours
-			for nbr in np.nonzero(self.edges[u,:]):
+			for nbr in np.nonzero(self.edges[u,:])[0]:
 				# change above 
 				[t_old,lda_old] = int_update[nbr,:]
 				lda_new = self.mu[nbr]+(lda-self.mu[nbr])*np.exp(-self.w*(t_new-t_old))+self.B[u,nbr]# use sparse matrix
@@ -322,18 +306,17 @@ class slant:
 	# 		res[m] = exp_mat[u]*x_t0+w[u]*inv_mat[u]*sub_term2
 	# 	return res		
 def main():
-	
-	# input_file = 'input_data'
-	# # load data 
-	# with open(input_file+'.pkl','rb') as f:
-	# 	data = pickle.load(f)
+	input_file = 'synthetic_data_1'
+	# load data 
+	with open(input_file+'.pkl','rb') as f:
+		data = pickle.load(f)
 		# data is object with three component
 		# graph , 
 		# train ( dictionary of msg )
 		# test ( dictionary of msg )
-	# slant_obj = slant(data.graph)
-	# slant_obj.estimate_param(data.train)
-	# result = slant_obj.predict(data.test)
+	slant_obj = slant(data)
+	slant_obj.estimate_param()
+	# result = slant_obj.predict()
 	#******************** test *******************************************
 	# print type(rnd.uniform(size = num_nbr ))
 	# def inverse_mat(self,mat):
@@ -369,5 +352,52 @@ def main():
 	# 		# define
 	# 		return D.dot(F)
 	# 	return F
+if __name__=="__main__":
+	main()
 
 		
+# def find_alpha_A(self):
+	# 	# maintain msg counter for each user
+	# 	# map users to 0 to nusers
+	# 	ind_4_V=np.zeros(self.nuser)
+	# 	tau={}
+	# 	for u in range(nuser):
+	# 		tau[u]=[]
+	# 	for t,u,m in H: #
+	# 		tau[u].append([t,u,m])
+	# 		ind_4_v[u]=ind_4_v[u]+1
+	# 	for u in range(nuser):
+	# 		i=0
+	# 		S=tau[u]
+	# 		for nbr in graph[u]:
+	# 			S=self.merge(S,tau[nbr])#
+	# 			x_last=0
+	# 			t_last=0
+	# 			m_no=0
+	# 			for t,v,m in S:
+	# 				if v==u:
+	# 					x=x_last*math.exp(-w*(t-t_last))
+	# 					g(m_no,v)=x
+	# 					y(m_no)=m
+	# 					m_no=m_no+1
+	# 				else:
+	# 					x=x_last*math.exp(-w*(t-t_last))
+	# 				t_last=t
+	# 				x_last=x
+	# 		alpha[u],A[u]=self.solve_least_square(g,y,lda)
+	# 	# nmsg
+	# 	# M=np.array(nuser,nmsg.max(),3)
+	# 	# for u in self.graph.vertices:
+	# 	# 	M[u,:,:1]=np.asarray([train[i,1:] if train[i,0]==u for i in self.ntrain])
+	# 	# 	M[u,:,2]=np.multiply(M[u,:,0],np.exp(w*M[u,:,1]))
+	# 	# alpha=np.array(nuser)
+	# 	# A=[]
+	# 	# for u in self.graph.vertices:
+	# 	# 	M_hat=np.array(nmsg,len(self.edges[u])+1)
+	# 	# 	arg1=M_hat.transpose().dot(M_hat)
+	# 	# 	arg2=M_hat.transpose().dot(M[u,:,0])
+	# 	# 	res = LA.solve(arg1,arg2)
+	# 	# 	alpha[u]=res[0]
+	# 	# 	A.append(list(res[1:]))
+	# 	# 	alpha[u],A[u]=self.solve_least_square(A,b)
+	# 	return alpha,A

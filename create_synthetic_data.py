@@ -22,10 +22,10 @@ class create_synthetic_data:
 		# 	if i in self.edges[i]:
 		# 		self.edges[i].remove(i)
 		self.edges=np.zeros((self.num_node,self.num_node))
-		num_nbr = int( self.frac_sparse * self.num_node)
-		shuffled_items = np.array(self.nodes)
+		shuffled_items = self.nodes
 		for i in self.nodes:
 			rnd.shuffle(shuffled_items)
+			num_nbr = int( self.frac_sparse * self.num_node)
 			current_neighbours = shuffled_items[: num_nbr]
 			# print "____________________________"
 			# print current_neighbours
@@ -117,8 +117,6 @@ def main():
 	# print data.msg
 	# data.split_data(train_fraction)
 	output_file = "synthetic_data_1"
-	with open(output_file+'.pkl' , 'wb') as f:
-		pickle.dump( data , f , pickle.HIGHEST_PROTOCOL)
-	# save(data,output_file)
+	save(data,output_file)
 if __name__=="__main__":
 	main()

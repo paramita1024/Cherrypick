@@ -131,3 +131,10 @@ class PriorityQueue(tree_op):
 				print self.Q.Q[i:self.heapsize,0]
 			i=i+c
 			c=c*2
+	def print_elements(self):
+		print "--------------------------Heap---------------------------------"
+		index = 0 
+		for time,user in self.Q.Q:
+			if index < self.heapsize:
+				print "user : "+ str(user) + ", -----time : " + str(time)
+			index = index + 1

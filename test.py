@@ -1,4 +1,7 @@
+# import matplotlib.pyplot as plt
+# from ctypes import *
 import numpy as np 
+import numpy.random as rnd
 import pickle
 from math import floor
 class test:
@@ -14,17 +17,88 @@ class test:
 		print self.b
 		print "c" 
 		print self.c 
-	
+# def test_it( num_var ):
+# 	s = np.array([3 , 4, 5])
+# 	t = np.array([6,7,8])
+# 	u = np.array([1,2,3])
+# 	if num_var == 1:
+# 		return s 
+# 	if num_var == 2:
+# 		return s, t 
+# 	if num_var == 3 : 
+# 		return s,t,u
+def test_least_square():
+	d0 = 30
+	d1 = 10
+	var = .00001 
+	A = rnd.rand( d0, d1)
+	x = rnd.rand( d1)
+	# print 
+	error = rnd.normal( 0 , var , d0 )
+	# print error.shape
+	# error = error.reshape(error.shape[0],1)
+	# print error.shape
+	# # print type(error)
+	b = A.dot(x) + error
+	print b.shape
+	# error_loss = []
+	# error_in_x = []
+	# for self.lambda_least_square in [ 10^x for x in range(-5,5,1) ]:
+	# 	# x_computed = self.solve_least_square(A,b)
+	# 	x_computed = LA.lstsq(A,b)[0]
+	# 	print x_computed.shape
+	# 	# print x_computed
+	# 	# error_loss.append( LA.norm(A.dot(x_computed) - b ))
+	# 	error_in_x.append(LA.norm( x - x_computed ))
+
+	# 	# plt.plot(error_loss)
+	# 	# # plt.ylabel('some numbers')
+	# 	# plt.show()
+	# # print "error in Ax-b"
+	# # print error_loss
+	# print "error in x - x*"
+	# print error_in_x
+
 def main():
-	v = np.array([0,0,2,3,2,1])
-	v1 = np.matmul(v,v)
-	# print type(np.nonzero(v)[0])
-	# print np.nonzero(v)
-	# v = np.array([-1,2,3])
-	# # print arr[-1]
+	print np.linalg.norm(np.array([1,2,3]))
+	# print np.arange(10)
+	# test_least_square()
+	# # A = np.array([[1,2,3],[4,5,6]])
+	# A = np.random.rand(3,3)
+	# b=np.array([1,2,3])
+	# e= np.random.normal(size=3)
+	# print e
 
-	# print np.maximum(v,np.zeros(v.shape[0]))
+	# alpha = np.array([1,2,3])
+	# mu = np.array([4,5,6])
+	# time_init = np.zeros((3 ,1))
 
+	# opn_update = np.concatenate((time_init, alpha.reshape( 3 , 1 )), axis=1)
+	# int_update =  np.concatenate((time_init, mu.reshape( 3 , 1 )), axis=1)
+	# # print ctypes.addressof(opn_update)
+	# print "---------------opn----------------"
+	# print opn_update
+	# print "---------------int----------------"
+	# print int_update
+
+	# time_init[0] = 35
+	# print "---------------opn-----------------"
+
+	# print opn_update
+	# print "---------------int-----------------"
+	# print int_update
+
+	# print opn_update 
+
+	# print int_update
+	# num_var = 3 
+	# u = test_it(num_var)
+	# print u
+	# arr = np.array([1,2,3])
+	# print arr
+	# test_it(arr)
+	# print arr
+	# print np.matmul(arr.reshape(arr.shape[0],1) , arr.reshape(1,arr.shape[0]))
 	# arr = np.array([[1,2,3],[4,5,6],[7,8,9]])
 	# arr_part = arr[[0,2],:]
 	# arr[0,0] = 35
@@ -75,11 +149,7 @@ def main():
 	# 	print " t exists"
 	# with open('test_file'+'.pkl','rb') as f:
 	# 	t_new = pickle.load(f)
-	# # t_new.print_it()
-	# input_file = "synthetic_data_1"
-	# # load data 
-	# with open(input_file+'.pkl','rb') as f:
-	# 	data = pickle.load(f)
+	# t_new.print_it()
 if __name__=="__main__":
 	main()
 
